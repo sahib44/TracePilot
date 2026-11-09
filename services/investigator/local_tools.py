@@ -12,11 +12,9 @@ from typing import Literal
 import httpx
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
-from services.investigator.models import RequestId, TraceId
+from services.investigator.models import SERVICES, RequestId, Service, TraceId
 
-Service = Literal["game-server", "event-processor"]
 Severity = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-SERVICES = ("game-server", "event-processor")
 SEVERITIES = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LOG_TAIL = 500

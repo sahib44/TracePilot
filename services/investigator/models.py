@@ -19,6 +19,9 @@ TraceId = Annotated[str, StringConstraints(to_lower=True, pattern=r"^[a-fA-F0-9]
 EvidenceId = Annotated[str, StringConstraints(pattern=r"^E[1-9][0-9]{0,2}$")]
 Confidence = Literal["high", "medium", "low", "undetermined"]
 Status = Literal["completed", "insufficient_evidence", "partial"]
+Service = Literal["game-server", "event-processor"]
+SERVICES: tuple[Service, ...] = ("game-server", "event-processor")
+DashboardMetric = Literal["throughput", "error_rate", "latency"]
 
 
 class IncidentInput(BaseModel):
@@ -106,3 +109,78 @@ class InvestigationResult(Findings):
         if references - evidence_ids:
             raise ValueError("Investigation references evidence that was not retrieved")
         return self
+
+
+HistorySearch = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=200), AfterValidator(valid_text)
+]
+
+
+class HistoryQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    limit: int = Field(default=20, ge=1, le=50)
+    offset: int = Field(default=0, ge=0, le=10_000)
+    status: Status | None = None
+    search: HistorySearch | None = None
+    sort: Literal["newest", "oldest"] = "newest"
+
+
+class InvestigationSummary(BaseModel):
+    id: UUID
+    incident: IncidentInput
+    status: Status
+    started_at: datetime
+    suspected_root_cause: FindingText | None
+    confidence: Confidence
+    duration_ms: int = Field(ge=0)
+
+
+class InvestigationPage(BaseModel):
+    items: list[InvestigationSummary]
+    total: int
+    limit: int
+    offset: int
+
+
+class DashboardQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    window: Literal["15", "60"] = "15"
+
+
+class HealthProbe(BaseModel):
+    service: Service
+    endpoint: Literal["/health", "/ready"]
+    status_code: int
+    ok: bool
+    timestamp: datetime
+    duration_ms: float
+
+
+class MetricPoint(BaseModel):
+    timestamp: int
+    value: float | None
+
+
+class MetricReading(BaseModel):
+    value: float | None = None
+    points: list[MetricPoint] = Field(default_factory=list)
+
+
+class ServiceSnapshot(BaseModel):
+    service: Service
+    liveness: HealthProbe | None
+    readiness: HealthProbe | None
+    metrics: dict[DashboardMetric, MetricReading]
+
+
+class DashboardSnapshot(BaseModel):
+    window_minutes: Literal[15, 60]
+    step_seconds: int
+    observed_at: datetime
+    services: list[ServiceSnapshot]
+    metric_errors: dict[DashboardMetric, str]
+    health_error: str | None
+    recent_investigations: list[InvestigationSummary]
+    recent_error: str | None

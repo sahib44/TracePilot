@@ -9,7 +9,14 @@ from typing import Literal
 import httpx
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
-from services.investigator.models import TraceId
+from services.investigator.models import (
+    SERVICES,
+    DashboardMetric,
+    MetricPoint,
+    MetricReading,
+    Service,
+    TraceId,
+)
 
 
 class QueryMetricsArgs(BaseModel):
@@ -20,7 +27,7 @@ class QueryMetricsArgs(BaseModel):
         "5xx errors per second over five minutes, p95 latency in seconds over five minutes, "
         "or scrape availability (1 is up, 0 is down)."
     )
-    service: Literal["game-server", "event-processor"] | None = Field(
+    service: Service | None = Field(
         default=None, description="Limit to one service. Omit for both services."
     )
     at: AwareDatetime | None = Field(
@@ -39,6 +46,7 @@ class GetTracesArgs(BaseModel):
 MAX_METRIC_SAMPLES = 16
 MAX_TRACE_SPANS = 16
 SOURCE_TIMEOUT_SECONDS = 3
+DASHBOARD_METRICS: tuple[DashboardMetric, ...] = ("throughput", "error_rate", "latency")
 
 
 class SourceError(Exception):
@@ -81,7 +89,13 @@ def _query(args: QueryMetricsArgs) -> tuple[str, str]:
         return f"sum by (service) (tracepilot_http_requests_total{{{filters}}})", "requests"
     if args.metric == "errors":
         return f"sum by (service, status_code) (tracepilot_http_request_errors_total{{{filters}}})", "errors"
-    if args.metric == "error_rate":
+    return _rate_query(args.metric, filters)
+
+
+def _rate_query(metric: DashboardMetric, filters: str) -> tuple[str, str]:
+    if metric == "throughput":
+        return f"sum by (service) (rate(tracepilot_http_requests_total{{{filters}}}[5m]))", "requests/second"
+    if metric == "error_rate":
         return (
             "sum by (service) (rate(tracepilot_http_request_errors_total"
             f'{{{filters},status_code=~"5.."}}[5m]))',
@@ -139,6 +153,52 @@ async def query_metrics(args: QueryMetricsArgs, *, client: httpx.AsyncClient, ba
         return _result_error(str(exc))
     except (ValueError, TypeError, KeyError, AttributeError, OverflowError, OSError, RecursionError):
         return _result_error("Prometheus returned a malformed response.")
+
+
+async def query_metric_range(
+    metric: DashboardMetric, *, timestamps: range, client: httpx.AsyncClient, base_url: str
+) -> tuple[dict[Service, MetricReading], str | None]:
+    # Exclude readiness and liveness traffic, including the dashboard's own probes.
+    query, _ = _rate_query(metric, 'job="tracepilot",route!~"/(health|ready)"')
+    params = {
+        "query": query, "start": timestamps[0], "end": timestamps[-1],
+        "step": timestamps.step, "timeout": "2s", "limit": len(SERVICES),
+    }
+    try:
+        body = await _get(
+            client, f"{base_url.rstrip('/')}/api/v1/query_range", params,
+            source="Prometheus", max_bytes=64 * 1024,
+        )
+        result = json.loads(body)
+        if result["status"] != "success" or result["data"]["resultType"] != "matrix":
+            raise SourceError("Prometheus did not return a range result.")
+
+        samples = result["data"]["result"]
+        if not isinstance(samples, list):
+            raise ValueError("Invalid metric series")
+        readings = {}
+        for sample in samples[:len(SERVICES)]:
+            service = sample["metric"]["service"]
+            if service not in SERVICES:
+                continue
+            samples_at_time = sample["values"]
+            if not isinstance(samples_at_time, list):
+                raise ValueError("Invalid metric samples")
+            values = {}
+            for raw_timestamp, raw_value in samples_at_time[:len(timestamps)]:
+                timestamp, value = float(raw_timestamp), float(raw_value)
+                if timestamp in timestamps and math.isfinite(value):
+                    values[timestamp] = value
+            if values:
+                readings[service] = MetricReading(
+                    value=values.get(timestamps[-1]),
+                    points=[MetricPoint(timestamp=t, value=values.get(t)) for t in timestamps],
+                )
+        return readings, None
+    except SourceError as exc:
+        return {}, str(exc)
+    except (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
+        return {}, "Prometheus returned a malformed response."
 
 
 def _identifier(value: str, length: int) -> str:

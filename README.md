@@ -1,6 +1,6 @@
 # TracePilot
 
-TracePilot is a local backend for investigating service incidents. A FastAPI investigator uses Qwen through Ollama to query structured logs, Prometheus metrics, Jaeger traces, and service health with read-only tools. It returns observations with evidence citations, a suspected cause when supported, and a tool timeline. PostgreSQL stores completed and partial investigations.
+TracePilot is a local incident investigator with a React and TypeScript dashboard. A FastAPI investigator uses Qwen through Ollama to query structured logs, Prometheus metrics, Jaeger traces, and service health with read-only tools. It returns observations with evidence citations, a suspected cause when supported, and a tool timeline. PostgreSQL stores completed and partial investigations.
 
 The demonstration stack simulates gaming infrastructure. The Game Server creates player sessions and forwards gameplay events to the Event Processor, which validates and stores them. Python 3.12 and FastAPI run the services, OpenTelemetry sends traces to Jaeger, and Docker Compose runs the services and their dependencies.
 
@@ -26,6 +26,20 @@ python -m uvicorn services.investigator.main:app --host 127.0.0.1 --port "${INVE
 ```
 
 The investigator uses the host Docker CLI to read recent application logs. It handles one investigation at a time, with defaults of eight tool calls and 180 seconds. Run `docker compose down` to stop the Compose services.
+
+## Dashboard
+
+With the Compose stack, Ollama, and the investigator running, use Node.js 22.12 or later to start the dashboard from the repository root.
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) to check service telemetry, browse saved investigations, and inspect findings and their evidence. Vite proxies API requests to the local investigator. If you changed its port, set `TRACEPILOT_INVESTIGATOR_URL` before starting Vite. Set `VITE_PROMETHEUS_URL` or `VITE_JAEGER_URL` if you changed the monitoring UI ports.
+
+Run `npm test` for mocked frontend tests and `npm run build` for the type check and production build.
 
 ## Reproduce and investigate an incident
 
