@@ -1,0 +1,2245 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "started_at": "2026-11-09T04:12:38.362969+00:00",
+  "model": {
+    "name": "qwen3:4b",
+    "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+    "ollama_version": "0.40.15"
+  },
+  "repetitions_per_scenario": 2,
+  "planned_runs": 6,
+  "incident_description": "A client reported a failed event submission. Find what happened across the services and determine the outcome of the write.",
+  "scenarios": {
+    "processor_error": {
+      "name": "processor_error",
+      "expected_root_cause": "An internal failure in the Event Processor caused HTTP 500 and propagated as HTTP 502.",
+      "expected_supporting_evidence": [
+        "SimulatedProcessorError or simulated processor failure",
+        "Processor 500 and caller 502",
+        "No event row"
+      ],
+      "caller_status": 502,
+      "downstream_status": 500,
+      "writes": false,
+      "cause_pattern": "simulatedprocessorerror|(?:simulat\\w*|internal).{0,36}processor.{0,24}(?:error|fail)|processor.{0,36}(?:simulat\\w*|internal).{0,24}(?:error|fail)|simulat\\w*.{0,18}(?:failure|error).{0,30}processor|internal (?:server )?(?:error|failure).{0,30}processor|simulat\\w* processor (?:failure|error)",
+      "anchor": "processor_error"
+    },
+    "database_error": {
+      "name": "database_error",
+      "expected_root_cause": "A PostgreSQL division-by-zero error aborted the database operation.",
+      "expected_supporting_evidence": [
+        "PostgreSQL DivisionByZero or SQLSTATE 22012",
+        "Processor and caller 503",
+        "No event row"
+      ],
+      "caller_status": 503,
+      "downstream_status": 503,
+      "writes": false,
+      "cause_pattern": "division[\\s-]*by[\\s-]*zero|\\b22012\\b|divid(?:e|ing) by zero",
+      "anchor": "database_error"
+    },
+    "delay": {
+      "name": "delay",
+      "expected_root_cause": "The downstream processor delay exceeded the caller deadline, then the write succeeded.",
+      "expected_supporting_evidence": [
+        "Processor delay and caller 504",
+        "Processor 201 and successful INSERT after caller response"
+      ],
+      "caller_status": 504,
+      "downstream_status": 201,
+      "writes": true,
+      "cause_pattern": "(?:processor|downstream).{0,55}(?:delay|slow|latency|exceed\\w* (?:the )?(?:deadline|timeout))|(?:delay|slow|latency).{0,55}(?:processor|downstream)",
+      "anchor": "processor_delay"
+    }
+  },
+  "runs": [
+    {
+      "scenario": "processor_error",
+      "repetition": 1,
+      "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+      "ground_truth": {
+        "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+        "session_id": "404c05fd-2afc-44c5-a584-ace0893b5c56",
+        "caller_status": 502,
+        "caller_finished_at": "2026-11-09T04:12:38.643618+00:00",
+        "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+        "downstream_status": 500,
+        "write": null,
+        "logs": [
+          {
+            "timestamp": "2026-11-09T04:12:38.611824+00:00",
+            "service": "game-server",
+            "level": "INFO",
+            "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+            "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+            "span_id": "0779b03e35eb208e",
+            "session_id": "404c05fd-2afc-44c5-a584-ace0893b5c56",
+            "event": "Forwarding event to processor"
+          },
+          {
+            "timestamp": "2026-11-09T04:12:38.623128+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+            "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+            "span_id": "cc8d09cca308eb3f",
+            "session_id": "404c05fd-2afc-44c5-a584-ace0893b5c56",
+            "event_id": "6844319b-791e-40d2-a68b-47450924496f",
+            "event": "Event processing started"
+          },
+          {
+            "timestamp": "2026-11-09T04:12:38.623759+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+            "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+            "span_id": "83bc7e99eb35ab7a",
+            "session_id": "404c05fd-2afc-44c5-a584-ace0893b5c56",
+            "event_id": "6844319b-791e-40d2-a68b-47450924496f",
+            "event": "Simulating processor failure",
+            "error": {
+              "type": "SimulatedProcessorError"
+            }
+          },
+          {
+            "timestamp": "2026-11-09T04:12:38.628049+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+            "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+            "span_id": "cc8d09cca308eb3f",
+            "session_id": "404c05fd-2afc-44c5-a584-ace0893b5c56",
+            "event_id": "6844319b-791e-40d2-a68b-47450924496f",
+            "event": "request_completed",
+            "path": "/process-event",
+            "method": "POST",
+            "status_code": 500
+          },
+          {
+            "timestamp": "2026-11-09T04:12:38.630097+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+            "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+            "span_id": "0779b03e35eb208e",
+            "session_id": "404c05fd-2afc-44c5-a584-ace0893b5c56",
+            "event": "Event processor returned an unexpected status",
+            "error": "HTTP 500"
+          },
+          {
+            "timestamp": "2026-11-09T04:12:38.630938+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+            "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+            "span_id": "0779b03e35eb208e",
+            "session_id": "404c05fd-2afc-44c5-a584-ace0893b5c56",
+            "event": "request_completed",
+            "path": "/sessions/{session_id}/events",
+            "method": "POST",
+            "status_code": 502
+          }
+        ],
+        "trace": {
+          "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+          "started_at": "2026-11-09T04:12:38.600935+00:00",
+          "duration_ms": 30.083,
+          "span_count": 4,
+          "spans": [
+            {
+              "service": "game-server",
+              "operation": "POST /sessions/{session_id}/events",
+              "span_id": "0779b03e35eb208e",
+              "kind": "server",
+              "status": "error",
+              "error_type": "502",
+              "http_status": 502,
+              "start_offset_ms": 0.0,
+              "end_offset_ms": 30.083,
+              "duration_ms": 30.083
+            },
+            {
+              "service": "game-server",
+              "operation": "POST /process-event",
+              "span_id": "6d704f54f4a07d09",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "0779b03e35eb208e",
+              "error_type": "500",
+              "http_status": 500,
+              "start_offset_ms": 11.486,
+              "end_offset_ms": 29.097,
+              "duration_ms": 17.611
+            },
+            {
+              "service": "event-processor",
+              "operation": "POST /process-event",
+              "span_id": "cc8d09cca308eb3f",
+              "kind": "server",
+              "status": "error",
+              "parent_span_id": "6d704f54f4a07d09",
+              "error_type": "500",
+              "http_status": 500,
+              "start_offset_ms": 19.044,
+              "end_offset_ms": 27.189,
+              "duration_ms": 8.146
+            },
+            {
+              "service": "event-processor",
+              "operation": "simulate processor error",
+              "span_id": "83bc7e99eb35ab7a",
+              "kind": "internal",
+              "status": "error",
+              "parent_span_id": "cc8d09cca308eb3f",
+              "error_type": "SimulatedProcessorError",
+              "failure_mode": "processor_error",
+              "start_offset_ms": 22.756,
+              "end_offset_ms": 24.298,
+              "duration_ms": 1.543
+            }
+          ]
+        }
+      },
+      "wall_duration_ms": 77795,
+      "result": {
+        "suspected_root_cause": "event-processor service simulation error",
+        "confidence": "medium",
+        "confirmed_observations": [
+          {
+            "observation": "Caller (game-server) failed to submit event with HTTP 502",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor service returned HTTP 500",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor simulation error occurred",
+            "evidence_ids": [
+              "E1"
+            ]
+          }
+        ],
+        "supporting_evidence": [
+          "E1"
+        ],
+        "missing_information": [
+          "Write outcome for event submission (failed, succeeded, unknown)"
+        ],
+        "recommended_next_action": "Verify event-processor write success and investigate simulation error configuration in event-processor service",
+        "id": "c1811ee3-4271-4a9e-be72-370566194020",
+        "incident": {
+          "description": "A client reported a failed event submission. Find what happened across the services and determine the outcome of the write.",
+          "request_id": "096fc5a4-a3a5-45de-acac-db94dce3c2d7",
+          "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+          "context": null
+        },
+        "status": "completed",
+        "started_at": "2026-11-09T04:12:39.275498Z",
+        "finished_at": "2026-11-09T04:13:57.010018Z",
+        "duration_ms": 77735,
+        "stop_reason": null,
+        "timeline": [
+          {
+            "tool": "get_traces",
+            "arguments": {
+              "trace_id": "a572e66ed8fd3aefe6334193df65d463"
+            },
+            "started_at": "2026-11-09T04:13:36.769027Z",
+            "duration_ms": 26,
+            "status": "ok",
+            "evidence_ids": [
+              "E1"
+            ],
+            "error": null,
+            "truncated": false
+          }
+        ],
+        "evidence": [
+          {
+            "id": "E1",
+            "tool": "get_traces",
+            "record": {
+              "trace_id": "a572e66ed8fd3aefe6334193df65d463",
+              "started_at": "2026-11-09T04:12:38.600935+00:00",
+              "duration_ms": 30.083,
+              "span_count": 4,
+              "spans": [
+                {
+                  "service": "game-server",
+                  "operation": "POST /sessions/{session_id}/events",
+                  "span_id": "0779b03e35eb208e",
+                  "kind": "server",
+                  "status": "error",
+                  "error_type": "502",
+                  "http_status": 502,
+                  "start_offset_ms": 0.0,
+                  "end_offset_ms": 30.083,
+                  "duration_ms": 30.083
+                },
+                {
+                  "service": "game-server",
+                  "operation": "POST /process-event",
+                  "span_id": "6d704f54f4a07d09",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "0779b03e35eb208e",
+                  "error_type": "500",
+                  "http_status": 500,
+                  "start_offset_ms": 11.486,
+                  "end_offset_ms": 29.097,
+                  "duration_ms": 17.611
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "POST /process-event",
+                  "span_id": "cc8d09cca308eb3f",
+                  "kind": "server",
+                  "status": "error",
+                  "parent_span_id": "6d704f54f4a07d09",
+                  "error_type": "500",
+                  "http_status": 500,
+                  "start_offset_ms": 19.044,
+                  "end_offset_ms": 27.189,
+                  "duration_ms": 8.146
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "simulate processor error",
+                  "span_id": "83bc7e99eb35ab7a",
+                  "kind": "internal",
+                  "status": "error",
+                  "parent_span_id": "cc8d09cca308eb3f",
+                  "error_type": "SimulatedProcessorError",
+                  "failure_mode": "processor_error",
+                  "start_offset_ms": 22.756,
+                  "end_offset_ms": 24.298,
+                  "duration_ms": 1.543
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "score": {
+        "root_cause_correct": true,
+        "citations_valid": true,
+        "supporting_evidence_correct": true,
+        "observations_grounded": true,
+        "observations_separated": true,
+        "outcome_correct": true,
+        "invalid_citation_ids": [],
+        "observation_checks": [
+          {
+            "observation": "Caller (game-server) failed to submit event with HTTP 502",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:game-server:502"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor service returned HTTP 500",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:event-processor:500"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor simulation error occurred",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "processor_error"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          }
+        ],
+        "missing_outcome_claims": [],
+        "tool_calls": 1,
+        "successful_tool_calls": 1,
+        "duration_ms": 77735,
+        "failures": []
+      }
+    },
+    {
+      "scenario": "database_error",
+      "repetition": 1,
+      "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+      "ground_truth": {
+        "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+        "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+        "caller_status": 503,
+        "caller_finished_at": "2026-11-09T04:13:57.173633+00:00",
+        "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+        "downstream_status": 503,
+        "write": null,
+        "logs": [
+          {
+            "timestamp": "2026-11-09T04:13:57.153971+00:00",
+            "service": "game-server",
+            "level": "INFO",
+            "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+            "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+            "span_id": "af4495b4c86a84f0",
+            "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+            "event": "Forwarding event to processor"
+          },
+          {
+            "timestamp": "2026-11-09T04:13:57.158046+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+            "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+            "span_id": "56b5cd712696477a",
+            "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+            "event_id": "1da76139-4f43-43ed-b4a4-fca5c77624c7",
+            "event": "Event processing started"
+          },
+          {
+            "timestamp": "2026-11-09T04:13:57.165649+00:00",
+            "service": "event-processor",
+            "level": "WARNING",
+            "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+            "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+            "span_id": "269eab6c9de0045a",
+            "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+            "event_id": "1da76139-4f43-43ed-b4a4-fca5c77624c7",
+            "event": "Simulating database operation failure"
+          },
+          {
+            "timestamp": "2026-11-09T04:13:57.169861+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+            "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+            "span_id": "56b5cd712696477a",
+            "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+            "event_id": "1da76139-4f43-43ed-b4a4-fca5c77624c7",
+            "event": "Event persistence failed",
+            "error": {
+              "type": "DivisionByZero",
+              "sqlstate": "22012"
+            }
+          },
+          {
+            "timestamp": "2026-11-09T04:13:57.170231+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+            "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+            "span_id": "56b5cd712696477a",
+            "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+            "event_id": "1da76139-4f43-43ed-b4a4-fca5c77624c7",
+            "event": "request_completed",
+            "path": "/process-event",
+            "method": "POST",
+            "status_code": 503
+          },
+          {
+            "timestamp": "2026-11-09T04:13:57.171344+00:00",
+            "service": "game-server",
+            "level": "WARNING",
+            "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+            "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+            "span_id": "af4495b4c86a84f0",
+            "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+            "event": "Event processor returned HTTP 503"
+          },
+          {
+            "timestamp": "2026-11-09T04:13:57.171707+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+            "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+            "span_id": "af4495b4c86a84f0",
+            "session_id": "93c7bf89-d4fd-453d-9f1f-e2652e4e55fe",
+            "event": "request_completed",
+            "path": "/sessions/{session_id}/events",
+            "method": "POST",
+            "status_code": 503
+          }
+        ],
+        "trace": {
+          "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+          "started_at": "2026-11-09T04:13:57.152901+00:00",
+          "duration_ms": 18.871,
+          "span_count": 4,
+          "spans": [
+            {
+              "service": "game-server",
+              "operation": "POST /sessions/{session_id}/events",
+              "span_id": "af4495b4c86a84f0",
+              "kind": "server",
+              "status": "error",
+              "error_type": "503",
+              "http_status": 503,
+              "start_offset_ms": 0.0,
+              "end_offset_ms": 18.871,
+              "duration_ms": 18.871
+            },
+            {
+              "service": "game-server",
+              "operation": "POST /process-event",
+              "span_id": "fe03c3dc00816ed5",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "af4495b4c86a84f0",
+              "error_type": "503",
+              "http_status": 503,
+              "start_offset_ms": 1.24,
+              "end_offset_ms": 18.378,
+              "duration_ms": 17.138
+            },
+            {
+              "service": "event-processor",
+              "operation": "POST /process-event",
+              "span_id": "56b5cd712696477a",
+              "kind": "server",
+              "status": "error",
+              "parent_span_id": "fe03c3dc00816ed5",
+              "error_type": "503",
+              "http_status": 503,
+              "start_offset_ms": 4.479,
+              "end_offset_ms": 17.392,
+              "duration_ms": 12.913
+            },
+            {
+              "service": "event-processor",
+              "operation": "SELECT",
+              "span_id": "269eab6c9de0045a",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "56b5cd712696477a",
+              "error_type": "DivisionByZero",
+              "db_system": "postgresql",
+              "db_operation": "SELECT",
+              "sqlstate": "22012",
+              "failure_mode": "database_error",
+              "start_offset_ms": 5.789,
+              "end_offset_ms": 16.904,
+              "duration_ms": 11.115
+            }
+          ]
+        }
+      },
+      "wall_duration_ms": 72706,
+      "result": {
+        "suspected_root_cause": "Database division by zero error in event-processor",
+        "confidence": "medium",
+        "confirmed_observations": [
+          {
+            "observation": "Caller failed with 503 status",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor SELECT operation failed with DivisionByZero",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "game-server POST /process-event returned 503",
+            "evidence_ids": [
+              "E1"
+            ]
+          }
+        ],
+        "supporting_evidence": [
+          "E1"
+        ],
+        "missing_information": [
+          "Write outcome for event submission",
+          "Exact database query causing division by zero"
+        ],
+        "recommended_next_action": "Investigate database query for division by zero error in event-processor SELECT operation",
+        "id": "d6c65ab8-9bf4-44ea-8dbd-52d50b83ff10",
+        "incident": {
+          "description": "A client reported a failed event submission. Find what happened across the services and determine the outcome of the write.",
+          "request_id": "55b5ae55-b979-44f9-a8bd-bb2a7954f3ca",
+          "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+          "context": null
+        },
+        "status": "completed",
+        "started_at": "2026-11-09T04:13:57.629237Z",
+        "finished_at": "2026-11-09T04:15:10.240252Z",
+        "duration_ms": 72611,
+        "stop_reason": null,
+        "timeline": [
+          {
+            "tool": "get_traces",
+            "arguments": {
+              "trace_id": "1cf28259614b2a39f289e9d89bd2bf84"
+            },
+            "started_at": "2026-11-09T04:14:48.280757Z",
+            "duration_ms": 29,
+            "status": "ok",
+            "evidence_ids": [
+              "E1"
+            ],
+            "error": null,
+            "truncated": false
+          }
+        ],
+        "evidence": [
+          {
+            "id": "E1",
+            "tool": "get_traces",
+            "record": {
+              "trace_id": "1cf28259614b2a39f289e9d89bd2bf84",
+              "started_at": "2026-11-09T04:13:57.152901+00:00",
+              "duration_ms": 18.871,
+              "span_count": 4,
+              "spans": [
+                {
+                  "service": "game-server",
+                  "operation": "POST /sessions/{session_id}/events",
+                  "span_id": "af4495b4c86a84f0",
+                  "kind": "server",
+                  "status": "error",
+                  "error_type": "503",
+                  "http_status": 503,
+                  "start_offset_ms": 0.0,
+                  "end_offset_ms": 18.871,
+                  "duration_ms": 18.871
+                },
+                {
+                  "service": "game-server",
+                  "operation": "POST /process-event",
+                  "span_id": "fe03c3dc00816ed5",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "af4495b4c86a84f0",
+                  "error_type": "503",
+                  "http_status": 503,
+                  "start_offset_ms": 1.24,
+                  "end_offset_ms": 18.378,
+                  "duration_ms": 17.138
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "POST /process-event",
+                  "span_id": "56b5cd712696477a",
+                  "kind": "server",
+                  "status": "error",
+                  "parent_span_id": "fe03c3dc00816ed5",
+                  "error_type": "503",
+                  "http_status": 503,
+                  "start_offset_ms": 4.479,
+                  "end_offset_ms": 17.392,
+                  "duration_ms": 12.913
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "SELECT",
+                  "span_id": "269eab6c9de0045a",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "56b5cd712696477a",
+                  "error_type": "DivisionByZero",
+                  "db_system": "postgresql",
+                  "db_operation": "SELECT",
+                  "sqlstate": "22012",
+                  "failure_mode": "database_error",
+                  "start_offset_ms": 5.789,
+                  "end_offset_ms": 16.904,
+                  "duration_ms": 11.115
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "score": {
+        "root_cause_correct": true,
+        "citations_valid": true,
+        "supporting_evidence_correct": true,
+        "observations_grounded": true,
+        "observations_separated": true,
+        "outcome_correct": true,
+        "invalid_citation_ids": [],
+        "observation_checks": [
+          {
+            "observation": "Caller failed with 503 status",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:game-server:503"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor SELECT operation failed with DivisionByZero",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "database_error"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "game-server POST /process-event returned 503",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:game-server:503"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          }
+        ],
+        "missing_outcome_claims": [],
+        "tool_calls": 1,
+        "successful_tool_calls": 1,
+        "duration_ms": 72611,
+        "failures": []
+      }
+    },
+    {
+      "scenario": "delay",
+      "repetition": 1,
+      "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+      "ground_truth": {
+        "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+        "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+        "caller_status": 504,
+        "caller_finished_at": "2026-11-09T04:15:11.516979+00:00",
+        "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+        "downstream_status": 201,
+        "write": {
+          "event_id": "0da7cf01-b291-49b8-ba75-0ffc3f73abad",
+          "created_at": "2026-11-09T04:15:12.525078+00:00"
+        },
+        "logs": [
+          {
+            "timestamp": "2026-11-09T04:15:10.495981+00:00",
+            "service": "game-server",
+            "level": "INFO",
+            "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+            "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+            "span_id": "7e3e6481e0a7af1d",
+            "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+            "event": "Forwarding event to processor"
+          },
+          {
+            "timestamp": "2026-11-09T04:15:10.504266+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+            "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+            "span_id": "02a13911d715e225",
+            "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+            "event_id": "0da7cf01-b291-49b8-ba75-0ffc3f73abad",
+            "event": "Event processing started"
+          },
+          {
+            "timestamp": "2026-11-09T04:15:10.504591+00:00",
+            "service": "event-processor",
+            "level": "WARNING",
+            "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+            "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+            "span_id": "8d9124db43196023",
+            "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+            "event_id": "0da7cf01-b291-49b8-ba75-0ffc3f73abad",
+            "event": "Simulating processor delay",
+            "delay_seconds": 2.0
+          },
+          {
+            "timestamp": "2026-11-09T04:15:11.508907+00:00",
+            "service": "game-server",
+            "level": "WARNING",
+            "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+            "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+            "span_id": "5b9c364ea7cd6675",
+            "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+            "event": "Event processor timed out",
+            "error": "ReadTimeout"
+          },
+          {
+            "timestamp": "2026-11-09T04:15:11.511328+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+            "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+            "span_id": "7e3e6481e0a7af1d",
+            "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+            "event": "request_completed",
+            "path": "/sessions/{session_id}/events",
+            "method": "POST",
+            "status_code": 504
+          },
+          {
+            "timestamp": "2026-11-09T04:15:12.542021+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+            "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+            "span_id": "02a13911d715e225",
+            "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+            "event_id": "0da7cf01-b291-49b8-ba75-0ffc3f73abad",
+            "event": "Event persisted"
+          },
+          {
+            "timestamp": "2026-11-09T04:15:12.549684+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+            "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+            "span_id": "02a13911d715e225",
+            "session_id": "77d790dc-1199-45b1-85cf-b15c6c4e3523",
+            "event_id": "0da7cf01-b291-49b8-ba75-0ffc3f73abad",
+            "event": "request_completed",
+            "path": "/process-event",
+            "method": "POST",
+            "status_code": 201
+          }
+        ],
+        "trace": {
+          "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+          "started_at": "2026-11-09T04:15:10.494779+00:00",
+          "duration_ms": 2055.094,
+          "span_count": 5,
+          "spans": [
+            {
+              "service": "game-server",
+              "operation": "POST /sessions/{session_id}/events",
+              "span_id": "7e3e6481e0a7af1d",
+              "kind": "server",
+              "status": "error",
+              "error_type": "504",
+              "http_status": 504,
+              "start_offset_ms": 0.0,
+              "end_offset_ms": 1016.795,
+              "duration_ms": 1016.795
+            },
+            {
+              "service": "game-server",
+              "operation": "POST /process-event",
+              "span_id": "5b9c364ea7cd6675",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "7e3e6481e0a7af1d",
+              "error_type": "ReadTimeout",
+              "start_offset_ms": 1.428,
+              "end_offset_ms": 1015.328,
+              "duration_ms": 1013.9
+            },
+            {
+              "service": "event-processor",
+              "operation": "POST /process-event",
+              "span_id": "02a13911d715e225",
+              "kind": "server",
+              "status": "unset",
+              "parent_span_id": "5b9c364ea7cd6675",
+              "http_status": 201,
+              "start_offset_ms": 8.151,
+              "end_offset_ms": 2055.094,
+              "duration_ms": 2046.943
+            },
+            {
+              "service": "event-processor",
+              "operation": "simulate processor delay",
+              "span_id": "8d9124db43196023",
+              "kind": "internal",
+              "status": "unset",
+              "parent_span_id": "02a13911d715e225",
+              "failure_mode": "delay",
+              "delay_seconds": 2.0,
+              "start_offset_ms": 9.789,
+              "end_offset_ms": 2010.774,
+              "duration_ms": 2000.986
+            },
+            {
+              "service": "event-processor",
+              "operation": "INSERT game_events",
+              "span_id": "b79cc048f8a0b375",
+              "kind": "client",
+              "status": "unset",
+              "parent_span_id": "02a13911d715e225",
+              "db_system": "postgresql",
+              "db_operation": "INSERT",
+              "db_collection": "game_events",
+              "start_offset_ms": 2011.341,
+              "end_offset_ms": 2046.396,
+              "duration_ms": 35.055
+            }
+          ]
+        }
+      },
+      "wall_duration_ms": 96747,
+      "result": {
+        "suspected_root_cause": "event-processor simulation delay",
+        "confidence": "medium",
+        "confirmed_observations": [
+          {
+            "observation": "game-server POST /sessions/{session_id}/events failed with 504 Gateway Timeout",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor POST /process-event returned 201 Created",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor simulated 2.0s delay before writing to PostgreSQL",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "game-server POST /process-event timed out after 1013.9ms",
+            "evidence_ids": [
+              "E1"
+            ]
+          }
+        ],
+        "supporting_evidence": [
+          "E1"
+        ],
+        "missing_information": [
+          "PostgreSQL write success status",
+          "Exact cause of game-server timeout"
+        ],
+        "recommended_next_action": "Verify PostgreSQL write success for game_events table after simulation delay",
+        "id": "2fccc412-e535-4c80-8114-9e3096ae4d35",
+        "incident": {
+          "description": "A client reported a failed event submission. Find what happened across the services and determine the outcome of the write.",
+          "request_id": "93604f40-4d30-4b3d-9351-e622d8ae42cf",
+          "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+          "context": null
+        },
+        "status": "completed",
+        "started_at": "2026-11-09T04:15:13.015726Z",
+        "finished_at": "2026-11-09T04:16:49.720974Z",
+        "duration_ms": 96706,
+        "stop_reason": null,
+        "timeline": [
+          {
+            "tool": "get_traces",
+            "arguments": {
+              "trace_id": "4b39212e2d8e9b30351b92f25668a17e"
+            },
+            "started_at": "2026-11-09T04:16:24.250006Z",
+            "duration_ms": 19,
+            "status": "ok",
+            "evidence_ids": [
+              "E1"
+            ],
+            "error": null,
+            "truncated": false
+          }
+        ],
+        "evidence": [
+          {
+            "id": "E1",
+            "tool": "get_traces",
+            "record": {
+              "trace_id": "4b39212e2d8e9b30351b92f25668a17e",
+              "started_at": "2026-11-09T04:15:10.494779+00:00",
+              "duration_ms": 2055.094,
+              "span_count": 5,
+              "spans": [
+                {
+                  "service": "game-server",
+                  "operation": "POST /sessions/{session_id}/events",
+                  "span_id": "7e3e6481e0a7af1d",
+                  "kind": "server",
+                  "status": "error",
+                  "error_type": "504",
+                  "http_status": 504,
+                  "start_offset_ms": 0.0,
+                  "end_offset_ms": 1016.795,
+                  "duration_ms": 1016.795
+                },
+                {
+                  "service": "game-server",
+                  "operation": "POST /process-event",
+                  "span_id": "5b9c364ea7cd6675",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "7e3e6481e0a7af1d",
+                  "error_type": "ReadTimeout",
+                  "start_offset_ms": 1.428,
+                  "end_offset_ms": 1015.328,
+                  "duration_ms": 1013.9
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "POST /process-event",
+                  "span_id": "02a13911d715e225",
+                  "kind": "server",
+                  "status": "unset",
+                  "parent_span_id": "5b9c364ea7cd6675",
+                  "http_status": 201,
+                  "start_offset_ms": 8.151,
+                  "end_offset_ms": 2055.094,
+                  "duration_ms": 2046.943
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "simulate processor delay",
+                  "span_id": "8d9124db43196023",
+                  "kind": "internal",
+                  "status": "unset",
+                  "parent_span_id": "02a13911d715e225",
+                  "failure_mode": "delay",
+                  "delay_seconds": 2.0,
+                  "start_offset_ms": 9.789,
+                  "end_offset_ms": 2010.774,
+                  "duration_ms": 2000.986
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "INSERT game_events",
+                  "span_id": "b79cc048f8a0b375",
+                  "kind": "client",
+                  "status": "unset",
+                  "parent_span_id": "02a13911d715e225",
+                  "db_system": "postgresql",
+                  "db_operation": "INSERT",
+                  "db_collection": "game_events",
+                  "start_offset_ms": 2011.341,
+                  "end_offset_ms": 2046.396,
+                  "duration_ms": 35.055
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "score": {
+        "root_cause_correct": true,
+        "citations_valid": true,
+        "supporting_evidence_correct": true,
+        "observations_grounded": true,
+        "observations_separated": true,
+        "outcome_correct": false,
+        "invalid_citation_ids": [],
+        "observation_checks": [
+          {
+            "observation": "game-server POST /sessions/{session_id}/events failed with 504 Gateway Timeout",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:game-server:504"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor POST /process-event returned 201 Created",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:event-processor:201"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor simulated 2.0s delay before writing to PostgreSQL",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "processor_delay"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "game-server POST /process-event timed out after 1013.9ms",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "read_timeout"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          }
+        ],
+        "missing_outcome_claims": [
+          "write_completed"
+        ],
+        "tool_calls": 1,
+        "successful_tool_calls": 1,
+        "duration_ms": 96706,
+        "failures": [
+          "outcome_correct"
+        ]
+      }
+    },
+    {
+      "scenario": "processor_error",
+      "repetition": 2,
+      "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+      "ground_truth": {
+        "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+        "session_id": "51bdc93a-ed6c-4459-a214-0a84d9a33d87",
+        "caller_status": 502,
+        "caller_finished_at": "2026-11-09T04:16:49.842460+00:00",
+        "trace_id": "089768fc8d45cccd631356235fd9912d",
+        "downstream_status": 500,
+        "write": null,
+        "logs": [
+          {
+            "timestamp": "2026-11-09T04:16:49.831686+00:00",
+            "service": "game-server",
+            "level": "INFO",
+            "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+            "trace_id": "089768fc8d45cccd631356235fd9912d",
+            "span_id": "253ba65f72bbe298",
+            "session_id": "51bdc93a-ed6c-4459-a214-0a84d9a33d87",
+            "event": "Forwarding event to processor"
+          },
+          {
+            "timestamp": "2026-11-09T04:16:49.833451+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+            "trace_id": "089768fc8d45cccd631356235fd9912d",
+            "span_id": "6bda3edb21589abd",
+            "session_id": "51bdc93a-ed6c-4459-a214-0a84d9a33d87",
+            "event_id": "5de08fc4-c6e4-4496-b39e-cba8544347eb",
+            "event": "Event processing started"
+          },
+          {
+            "timestamp": "2026-11-09T04:16:49.833750+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+            "trace_id": "089768fc8d45cccd631356235fd9912d",
+            "span_id": "d49e85aad24768e6",
+            "session_id": "51bdc93a-ed6c-4459-a214-0a84d9a33d87",
+            "event_id": "5de08fc4-c6e4-4496-b39e-cba8544347eb",
+            "event": "Simulating processor failure",
+            "error": {
+              "type": "SimulatedProcessorError"
+            }
+          },
+          {
+            "timestamp": "2026-11-09T04:16:49.834784+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+            "trace_id": "089768fc8d45cccd631356235fd9912d",
+            "span_id": "6bda3edb21589abd",
+            "session_id": "51bdc93a-ed6c-4459-a214-0a84d9a33d87",
+            "event_id": "5de08fc4-c6e4-4496-b39e-cba8544347eb",
+            "event": "request_completed",
+            "path": "/process-event",
+            "method": "POST",
+            "status_code": 500
+          },
+          {
+            "timestamp": "2026-11-09T04:16:49.835732+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+            "trace_id": "089768fc8d45cccd631356235fd9912d",
+            "span_id": "253ba65f72bbe298",
+            "session_id": "51bdc93a-ed6c-4459-a214-0a84d9a33d87",
+            "event": "Event processor returned an unexpected status",
+            "error": "HTTP 500"
+          },
+          {
+            "timestamp": "2026-11-09T04:16:49.836746+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+            "trace_id": "089768fc8d45cccd631356235fd9912d",
+            "span_id": "253ba65f72bbe298",
+            "session_id": "51bdc93a-ed6c-4459-a214-0a84d9a33d87",
+            "event": "request_completed",
+            "path": "/sessions/{session_id}/events",
+            "method": "POST",
+            "status_code": 502
+          }
+        ],
+        "trace": {
+          "trace_id": "089768fc8d45cccd631356235fd9912d",
+          "started_at": "2026-11-09T04:16:49.830798+00:00",
+          "duration_ms": 6.01,
+          "span_count": 4,
+          "spans": [
+            {
+              "service": "game-server",
+              "operation": "POST /sessions/{session_id}/events",
+              "span_id": "253ba65f72bbe298",
+              "kind": "server",
+              "status": "error",
+              "error_type": "502",
+              "http_status": 502,
+              "start_offset_ms": 0.0,
+              "end_offset_ms": 6.01,
+              "duration_ms": 6.01
+            },
+            {
+              "service": "game-server",
+              "operation": "POST /process-event",
+              "span_id": "ef023a687dd2d812",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "253ba65f72bbe298",
+              "error_type": "500",
+              "http_status": 500,
+              "start_offset_ms": 1.025,
+              "end_offset_ms": 4.891,
+              "duration_ms": 3.866
+            },
+            {
+              "service": "event-processor",
+              "operation": "POST /process-event",
+              "span_id": "6bda3edb21589abd",
+              "kind": "server",
+              "status": "error",
+              "parent_span_id": "ef023a687dd2d812",
+              "error_type": "500",
+              "http_status": 500,
+              "start_offset_ms": 2.017,
+              "end_offset_ms": 4.093,
+              "duration_ms": 2.076
+            },
+            {
+              "service": "event-processor",
+              "operation": "simulate processor error",
+              "span_id": "d49e85aad24768e6",
+              "kind": "internal",
+              "status": "error",
+              "parent_span_id": "6bda3edb21589abd",
+              "error_type": "SimulatedProcessorError",
+              "failure_mode": "processor_error",
+              "start_offset_ms": 2.79,
+              "end_offset_ms": 3.026,
+              "duration_ms": 0.236
+            }
+          ]
+        }
+      },
+      "wall_duration_ms": 79808,
+      "result": {
+        "suspected_root_cause": "event-processor service processor error",
+        "confidence": "medium",
+        "confirmed_observations": [
+          {
+            "observation": "Caller failed to submit event",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor service returned 500",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "game-server service returned 502",
+            "evidence_ids": [
+              "E1"
+            ]
+          }
+        ],
+        "supporting_evidence": [
+          "E1"
+        ],
+        "missing_information": [
+          "Write outcome for event submission"
+        ],
+        "recommended_next_action": "Investigate event-processor service processor error to determine root cause of 500 response and fix processor error handling",
+        "id": "f474008e-d6e1-4c3c-abcc-5444058371ce",
+        "incident": {
+          "description": "A client reported a failed event submission. Find what happened across the services and determine the outcome of the write.",
+          "request_id": "8b754fcf-4fa6-4d65-aede-160fdabeaba8",
+          "trace_id": "089768fc8d45cccd631356235fd9912d",
+          "context": null
+        },
+        "status": "completed",
+        "started_at": "2026-11-09T04:16:50.274270Z",
+        "finished_at": "2026-11-09T04:18:10.034474Z",
+        "duration_ms": 79761,
+        "stop_reason": null,
+        "timeline": [
+          {
+            "tool": "get_traces",
+            "arguments": {
+              "trace_id": "089768fc8d45cccd631356235fd9912d"
+            },
+            "started_at": "2026-11-09T04:17:51.989580Z",
+            "duration_ms": 17,
+            "status": "ok",
+            "evidence_ids": [
+              "E1"
+            ],
+            "error": null,
+            "truncated": false
+          }
+        ],
+        "evidence": [
+          {
+            "id": "E1",
+            "tool": "get_traces",
+            "record": {
+              "trace_id": "089768fc8d45cccd631356235fd9912d",
+              "started_at": "2026-11-09T04:16:49.830798+00:00",
+              "duration_ms": 6.01,
+              "span_count": 4,
+              "spans": [
+                {
+                  "service": "game-server",
+                  "operation": "POST /sessions/{session_id}/events",
+                  "span_id": "253ba65f72bbe298",
+                  "kind": "server",
+                  "status": "error",
+                  "error_type": "502",
+                  "http_status": 502,
+                  "start_offset_ms": 0.0,
+                  "end_offset_ms": 6.01,
+                  "duration_ms": 6.01
+                },
+                {
+                  "service": "game-server",
+                  "operation": "POST /process-event",
+                  "span_id": "ef023a687dd2d812",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "253ba65f72bbe298",
+                  "error_type": "500",
+                  "http_status": 500,
+                  "start_offset_ms": 1.025,
+                  "end_offset_ms": 4.891,
+                  "duration_ms": 3.866
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "POST /process-event",
+                  "span_id": "6bda3edb21589abd",
+                  "kind": "server",
+                  "status": "error",
+                  "parent_span_id": "ef023a687dd2d812",
+                  "error_type": "500",
+                  "http_status": 500,
+                  "start_offset_ms": 2.017,
+                  "end_offset_ms": 4.093,
+                  "duration_ms": 2.076
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "simulate processor error",
+                  "span_id": "d49e85aad24768e6",
+                  "kind": "internal",
+                  "status": "error",
+                  "parent_span_id": "6bda3edb21589abd",
+                  "error_type": "SimulatedProcessorError",
+                  "failure_mode": "processor_error",
+                  "start_offset_ms": 2.79,
+                  "end_offset_ms": 3.026,
+                  "duration_ms": 0.236
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "score": {
+        "root_cause_correct": false,
+        "citations_valid": true,
+        "supporting_evidence_correct": true,
+        "observations_grounded": true,
+        "observations_separated": true,
+        "outcome_correct": true,
+        "invalid_citation_ids": [],
+        "observation_checks": [
+          {
+            "observation": "Caller failed to submit event",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "caller_failed"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor service returned 500",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:event-processor:500"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "game-server service returned 502",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:game-server:502"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          }
+        ],
+        "missing_outcome_claims": [],
+        "tool_calls": 1,
+        "successful_tool_calls": 1,
+        "duration_ms": 79761,
+        "failures": [
+          "root_cause_correct"
+        ]
+      }
+    },
+    {
+      "scenario": "database_error",
+      "repetition": 2,
+      "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+      "ground_truth": {
+        "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+        "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+        "caller_status": 503,
+        "caller_finished_at": "2026-11-09T04:18:10.185404+00:00",
+        "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+        "downstream_status": 503,
+        "write": null,
+        "logs": [
+          {
+            "timestamp": "2026-11-09T04:18:10.147084+00:00",
+            "service": "game-server",
+            "level": "INFO",
+            "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+            "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+            "span_id": "506d86d4c167b737",
+            "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+            "event": "Forwarding event to processor"
+          },
+          {
+            "timestamp": "2026-11-09T04:18:10.152985+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+            "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+            "span_id": "22eef002327d47e2",
+            "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+            "event_id": "5aaae9d2-21a7-4efc-a562-667318e3e36c",
+            "event": "Event processing started"
+          },
+          {
+            "timestamp": "2026-11-09T04:18:10.161737+00:00",
+            "service": "event-processor",
+            "level": "WARNING",
+            "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+            "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+            "span_id": "24ad60a5c81eb290",
+            "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+            "event_id": "5aaae9d2-21a7-4efc-a562-667318e3e36c",
+            "event": "Simulating database operation failure"
+          },
+          {
+            "timestamp": "2026-11-09T04:18:10.163621+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+            "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+            "span_id": "22eef002327d47e2",
+            "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+            "event_id": "5aaae9d2-21a7-4efc-a562-667318e3e36c",
+            "event": "Event persistence failed",
+            "error": {
+              "type": "DivisionByZero",
+              "sqlstate": "22012"
+            }
+          },
+          {
+            "timestamp": "2026-11-09T04:18:10.164017+00:00",
+            "service": "event-processor",
+            "level": "ERROR",
+            "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+            "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+            "span_id": "22eef002327d47e2",
+            "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+            "event_id": "5aaae9d2-21a7-4efc-a562-667318e3e36c",
+            "event": "request_completed",
+            "path": "/process-event",
+            "method": "POST",
+            "status_code": 503
+          },
+          {
+            "timestamp": "2026-11-09T04:18:10.166084+00:00",
+            "service": "game-server",
+            "level": "WARNING",
+            "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+            "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+            "span_id": "506d86d4c167b737",
+            "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+            "event": "Event processor returned HTTP 503"
+          },
+          {
+            "timestamp": "2026-11-09T04:18:10.166970+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+            "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+            "span_id": "506d86d4c167b737",
+            "session_id": "9c0bf038-9526-440d-ad09-da51822437bb",
+            "event": "request_completed",
+            "path": "/sessions/{session_id}/events",
+            "method": "POST",
+            "status_code": 503
+          }
+        ],
+        "trace": {
+          "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+          "started_at": "2026-11-09T04:18:10.145921+00:00",
+          "duration_ms": 21.126,
+          "span_count": 4,
+          "spans": [
+            {
+              "service": "game-server",
+              "operation": "POST /sessions/{session_id}/events",
+              "span_id": "506d86d4c167b737",
+              "kind": "server",
+              "status": "error",
+              "error_type": "503",
+              "http_status": 503,
+              "start_offset_ms": 0.0,
+              "end_offset_ms": 21.126,
+              "duration_ms": 21.126
+            },
+            {
+              "service": "game-server",
+              "operation": "POST /process-event",
+              "span_id": "8a8bbf7413ffe6c9",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "506d86d4c167b737",
+              "error_type": "503",
+              "http_status": 503,
+              "start_offset_ms": 1.336,
+              "end_offset_ms": 20.112,
+              "duration_ms": 18.776
+            },
+            {
+              "service": "event-processor",
+              "operation": "POST /process-event",
+              "span_id": "22eef002327d47e2",
+              "kind": "server",
+              "status": "error",
+              "parent_span_id": "8a8bbf7413ffe6c9",
+              "error_type": "503",
+              "http_status": 503,
+              "start_offset_ms": 6.341,
+              "end_offset_ms": 18.153,
+              "duration_ms": 11.812
+            },
+            {
+              "service": "event-processor",
+              "operation": "SELECT",
+              "span_id": "24ad60a5c81eb290",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "22eef002327d47e2",
+              "error_type": "DivisionByZero",
+              "db_system": "postgresql",
+              "db_operation": "SELECT",
+              "sqlstate": "22012",
+              "failure_mode": "database_error",
+              "start_offset_ms": 7.28,
+              "end_offset_ms": 17.657,
+              "duration_ms": 10.376
+            }
+          ]
+        }
+      },
+      "wall_duration_ms": 97541,
+      "result": {
+        "suspected_root_cause": "Database division by zero error in event-processor",
+        "confidence": "medium",
+        "confirmed_observations": [
+          {
+            "observation": "Caller failed with HTTP 503",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor SELECT operation failed with DivisionByZero",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor service returned HTTP 503",
+            "evidence_ids": [
+              "E1"
+            ]
+          }
+        ],
+        "supporting_evidence": [
+          "E1"
+        ],
+        "missing_information": [
+          "Write outcome for event submission",
+          "Caller timeout details"
+        ],
+        "recommended_next_action": "Investigate database query for division by zero error in event-processor service",
+        "id": "55b90b6f-5d66-4431-8bd6-44c027fbf838",
+        "incident": {
+          "description": "A client reported a failed event submission. Find what happened across the services and determine the outcome of the write.",
+          "request_id": "4a00d242-1c25-4944-9a1a-8defdb7fd611",
+          "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+          "context": null
+        },
+        "status": "completed",
+        "started_at": "2026-11-09T04:18:10.601267Z",
+        "finished_at": "2026-11-09T04:19:48.079505Z",
+        "duration_ms": 97479,
+        "stop_reason": null,
+        "timeline": [
+          {
+            "tool": "get_traces",
+            "arguments": {
+              "trace_id": "7fe0eb9a51225a0954bc85846407c3e5"
+            },
+            "started_at": "2026-11-09T04:19:22.052550Z",
+            "duration_ms": 24,
+            "status": "ok",
+            "evidence_ids": [
+              "E1"
+            ],
+            "error": null,
+            "truncated": false
+          }
+        ],
+        "evidence": [
+          {
+            "id": "E1",
+            "tool": "get_traces",
+            "record": {
+              "trace_id": "7fe0eb9a51225a0954bc85846407c3e5",
+              "started_at": "2026-11-09T04:18:10.145921+00:00",
+              "duration_ms": 21.126,
+              "span_count": 4,
+              "spans": [
+                {
+                  "service": "game-server",
+                  "operation": "POST /sessions/{session_id}/events",
+                  "span_id": "506d86d4c167b737",
+                  "kind": "server",
+                  "status": "error",
+                  "error_type": "503",
+                  "http_status": 503,
+                  "start_offset_ms": 0.0,
+                  "end_offset_ms": 21.126,
+                  "duration_ms": 21.126
+                },
+                {
+                  "service": "game-server",
+                  "operation": "POST /process-event",
+                  "span_id": "8a8bbf7413ffe6c9",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "506d86d4c167b737",
+                  "error_type": "503",
+                  "http_status": 503,
+                  "start_offset_ms": 1.336,
+                  "end_offset_ms": 20.112,
+                  "duration_ms": 18.776
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "POST /process-event",
+                  "span_id": "22eef002327d47e2",
+                  "kind": "server",
+                  "status": "error",
+                  "parent_span_id": "8a8bbf7413ffe6c9",
+                  "error_type": "503",
+                  "http_status": 503,
+                  "start_offset_ms": 6.341,
+                  "end_offset_ms": 18.153,
+                  "duration_ms": 11.812
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "SELECT",
+                  "span_id": "24ad60a5c81eb290",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "22eef002327d47e2",
+                  "error_type": "DivisionByZero",
+                  "db_system": "postgresql",
+                  "db_operation": "SELECT",
+                  "sqlstate": "22012",
+                  "failure_mode": "database_error",
+                  "start_offset_ms": 7.28,
+                  "end_offset_ms": 17.657,
+                  "duration_ms": 10.376
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "score": {
+        "root_cause_correct": true,
+        "citations_valid": true,
+        "supporting_evidence_correct": true,
+        "observations_grounded": true,
+        "observations_separated": true,
+        "outcome_correct": true,
+        "invalid_citation_ids": [],
+        "observation_checks": [
+          {
+            "observation": "Caller failed with HTTP 503",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:game-server:503"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor SELECT operation failed with DivisionByZero",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "database_error"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor service returned HTTP 503",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:event-processor:503"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          }
+        ],
+        "missing_outcome_claims": [],
+        "tool_calls": 1,
+        "successful_tool_calls": 1,
+        "duration_ms": 97479,
+        "failures": []
+      }
+    },
+    {
+      "scenario": "delay",
+      "repetition": 2,
+      "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+      "ground_truth": {
+        "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+        "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+        "caller_status": 504,
+        "caller_finished_at": "2026-11-09T04:19:49.279174+00:00",
+        "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+        "downstream_status": 201,
+        "write": {
+          "event_id": "9377fe02-0275-4898-918b-a91f3193a6da",
+          "created_at": "2026-11-09T04:19:50.283967+00:00"
+        },
+        "logs": [
+          {
+            "timestamp": "2026-11-09T04:19:48.259886+00:00",
+            "service": "game-server",
+            "level": "INFO",
+            "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+            "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+            "span_id": "2010dccbec54cc8c",
+            "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+            "event": "Forwarding event to processor"
+          },
+          {
+            "timestamp": "2026-11-09T04:19:48.266376+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+            "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+            "span_id": "029c2a9f646b5067",
+            "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+            "event_id": "9377fe02-0275-4898-918b-a91f3193a6da",
+            "event": "Event processing started"
+          },
+          {
+            "timestamp": "2026-11-09T04:19:48.266582+00:00",
+            "service": "event-processor",
+            "level": "WARNING",
+            "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+            "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+            "span_id": "8db635804c2ba252",
+            "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+            "event_id": "9377fe02-0275-4898-918b-a91f3193a6da",
+            "event": "Simulating processor delay",
+            "delay_seconds": 2.0
+          },
+          {
+            "timestamp": "2026-11-09T04:19:49.269942+00:00",
+            "service": "game-server",
+            "level": "WARNING",
+            "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+            "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+            "span_id": "b349fdc5b4508371",
+            "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+            "event": "Event processor timed out",
+            "error": "ReadTimeout"
+          },
+          {
+            "timestamp": "2026-11-09T04:19:49.271328+00:00",
+            "service": "game-server",
+            "level": "ERROR",
+            "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+            "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+            "span_id": "2010dccbec54cc8c",
+            "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+            "event": "request_completed",
+            "path": "/sessions/{session_id}/events",
+            "method": "POST",
+            "status_code": 504
+          },
+          {
+            "timestamp": "2026-11-09T04:19:50.291040+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+            "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+            "span_id": "029c2a9f646b5067",
+            "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+            "event_id": "9377fe02-0275-4898-918b-a91f3193a6da",
+            "event": "Event persisted"
+          },
+          {
+            "timestamp": "2026-11-09T04:19:50.291923+00:00",
+            "service": "event-processor",
+            "level": "INFO",
+            "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+            "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+            "span_id": "029c2a9f646b5067",
+            "session_id": "a7f01cc7-d7c3-4938-a572-90dc24b8059f",
+            "event_id": "9377fe02-0275-4898-918b-a91f3193a6da",
+            "event": "request_completed",
+            "path": "/process-event",
+            "method": "POST",
+            "status_code": 201
+          }
+        ],
+        "trace": {
+          "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+          "started_at": "2026-11-09T04:19:48.258778+00:00",
+          "duration_ms": 2033.248,
+          "span_count": 5,
+          "spans": [
+            {
+              "service": "game-server",
+              "operation": "POST /sessions/{session_id}/events",
+              "span_id": "2010dccbec54cc8c",
+              "kind": "server",
+              "status": "error",
+              "error_type": "504",
+              "http_status": 504,
+              "start_offset_ms": 0.0,
+              "end_offset_ms": 1012.73,
+              "duration_ms": 1012.73
+            },
+            {
+              "service": "game-server",
+              "operation": "POST /process-event",
+              "span_id": "b349fdc5b4508371",
+              "kind": "client",
+              "status": "error",
+              "parent_span_id": "2010dccbec54cc8c",
+              "error_type": "ReadTimeout",
+              "start_offset_ms": 1.287,
+              "end_offset_ms": 1011.968,
+              "duration_ms": 1010.681
+            },
+            {
+              "service": "event-processor",
+              "operation": "POST /process-event",
+              "span_id": "029c2a9f646b5067",
+              "kind": "server",
+              "status": "unset",
+              "parent_span_id": "b349fdc5b4508371",
+              "http_status": 201,
+              "start_offset_ms": 6.853,
+              "end_offset_ms": 2033.248,
+              "duration_ms": 2026.395
+            },
+            {
+              "service": "event-processor",
+              "operation": "simulate processor delay",
+              "span_id": "8db635804c2ba252",
+              "kind": "internal",
+              "status": "unset",
+              "parent_span_id": "029c2a9f646b5067",
+              "failure_mode": "delay",
+              "delay_seconds": 2.0,
+              "start_offset_ms": 7.79,
+              "end_offset_ms": 2009.603,
+              "duration_ms": 2001.814
+            },
+            {
+              "service": "event-processor",
+              "operation": "INSERT game_events",
+              "span_id": "5261965c33a464dd",
+              "kind": "client",
+              "status": "unset",
+              "parent_span_id": "029c2a9f646b5067",
+              "db_system": "postgresql",
+              "db_operation": "INSERT",
+              "db_collection": "game_events",
+              "start_offset_ms": 2010.008,
+              "end_offset_ms": 2032.148,
+              "duration_ms": 22.14
+            }
+          ]
+        }
+      },
+      "wall_duration_ms": 97462,
+      "result": {
+        "suspected_root_cause": "event-processor simulate processor delay",
+        "confidence": "medium",
+        "confirmed_observations": [
+          {
+            "observation": "event-processor service returned 201 HTTP status",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "event-processor simulate processor delay (2.0 seconds delay)",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "game-server POST /process-event operation timed out (1010.681ms)",
+            "evidence_ids": [
+              "E1"
+            ]
+          },
+          {
+            "observation": "game-server POST /sessions/{session_id}/events operation returned 504",
+            "evidence_ids": [
+              "E1"
+            ]
+          }
+        ],
+        "supporting_evidence": [
+          "E1"
+        ],
+        "missing_information": [
+          "write completion status for game_events (INSERT) - evidence shows duration but not final write outcome"
+        ],
+        "recommended_next_action": "Verify database write completion for game_events table after 2.0s delay period to confirm write success or failure",
+        "id": "dd16dcc4-8940-43fe-b16b-64629889aa25",
+        "incident": {
+          "description": "A client reported a failed event submission. Find what happened across the services and determine the outcome of the write.",
+          "request_id": "9bad00e0-0b5d-40dc-88cb-c0b38b85c4f5",
+          "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+          "context": null
+        },
+        "status": "completed",
+        "started_at": "2026-11-09T04:19:50.751022Z",
+        "finished_at": "2026-11-09T04:21:28.146586Z",
+        "duration_ms": 97396,
+        "stop_reason": null,
+        "timeline": [
+          {
+            "tool": "get_traces",
+            "arguments": {
+              "trace_id": "de89d47bcaf8e963128d188a53ec87b3"
+            },
+            "started_at": "2026-11-09T04:20:55.431997Z",
+            "duration_ms": 86,
+            "status": "ok",
+            "evidence_ids": [
+              "E1"
+            ],
+            "error": null,
+            "truncated": false
+          }
+        ],
+        "evidence": [
+          {
+            "id": "E1",
+            "tool": "get_traces",
+            "record": {
+              "trace_id": "de89d47bcaf8e963128d188a53ec87b3",
+              "started_at": "2026-11-09T04:19:48.258778+00:00",
+              "duration_ms": 2033.248,
+              "span_count": 5,
+              "spans": [
+                {
+                  "service": "game-server",
+                  "operation": "POST /sessions/{session_id}/events",
+                  "span_id": "2010dccbec54cc8c",
+                  "kind": "server",
+                  "status": "error",
+                  "error_type": "504",
+                  "http_status": 504,
+                  "start_offset_ms": 0.0,
+                  "end_offset_ms": 1012.73,
+                  "duration_ms": 1012.73
+                },
+                {
+                  "service": "game-server",
+                  "operation": "POST /process-event",
+                  "span_id": "b349fdc5b4508371",
+                  "kind": "client",
+                  "status": "error",
+                  "parent_span_id": "2010dccbec54cc8c",
+                  "error_type": "ReadTimeout",
+                  "start_offset_ms": 1.287,
+                  "end_offset_ms": 1011.968,
+                  "duration_ms": 1010.681
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "POST /process-event",
+                  "span_id": "029c2a9f646b5067",
+                  "kind": "server",
+                  "status": "unset",
+                  "parent_span_id": "b349fdc5b4508371",
+                  "http_status": 201,
+                  "start_offset_ms": 6.853,
+                  "end_offset_ms": 2033.248,
+                  "duration_ms": 2026.395
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "simulate processor delay",
+                  "span_id": "8db635804c2ba252",
+                  "kind": "internal",
+                  "status": "unset",
+                  "parent_span_id": "029c2a9f646b5067",
+                  "failure_mode": "delay",
+                  "delay_seconds": 2.0,
+                  "start_offset_ms": 7.79,
+                  "end_offset_ms": 2009.603,
+                  "duration_ms": 2001.814
+                },
+                {
+                  "service": "event-processor",
+                  "operation": "INSERT game_events",
+                  "span_id": "5261965c33a464dd",
+                  "kind": "client",
+                  "status": "unset",
+                  "parent_span_id": "029c2a9f646b5067",
+                  "db_system": "postgresql",
+                  "db_operation": "INSERT",
+                  "db_collection": "game_events",
+                  "start_offset_ms": 2010.008,
+                  "end_offset_ms": 2032.148,
+                  "duration_ms": 22.14
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "score": {
+        "root_cause_correct": true,
+        "citations_valid": true,
+        "supporting_evidence_correct": true,
+        "observations_grounded": true,
+        "observations_separated": true,
+        "outcome_correct": false,
+        "invalid_citation_ids": [],
+        "observation_checks": [
+          {
+            "observation": "event-processor service returned 201 HTTP status",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:event-processor:201"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "event-processor simulate processor delay (2.0 seconds delay)",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "processor_delay"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "game-server POST /process-event operation timed out (1010.681ms)",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "read_timeout"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          },
+          {
+            "observation": "game-server POST /sessions/{session_id}/events operation returned 504",
+            "evidence_ids": [
+              "E1"
+            ],
+            "recognized": [
+              "http:game-server:504"
+            ],
+            "unsupported": [],
+            "grounded": true,
+            "separated": true
+          }
+        ],
+        "missing_outcome_claims": [
+          "write_completed"
+        ],
+        "tool_calls": 1,
+        "successful_tool_calls": 1,
+        "duration_ms": 97396,
+        "failures": [
+          "outcome_correct"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "overall": {
+      "attempted_runs": 6,
+      "graded_runs": 6,
+      "run_errors": 0,
+      "checks_passed": {
+        "root_cause_correct": 5,
+        "citations_valid": 6,
+        "supporting_evidence_correct": 6,
+        "observations_grounded": 6,
+        "observations_separated": 6,
+        "outcome_correct": 4
+      },
+      "root_cause_accuracy": 0.8333333333333334,
+      "average_duration_ms": 86948,
+      "average_tool_calls": 1,
+      "tool_calls": 6,
+      "successful_tool_calls": 6,
+      "tool_call_success_rate": 1.0
+    },
+    "by_scenario": {
+      "processor_error": {
+        "attempted_runs": 2,
+        "graded_runs": 2,
+        "run_errors": 0,
+        "checks_passed": {
+          "root_cause_correct": 1,
+          "citations_valid": 2,
+          "supporting_evidence_correct": 2,
+          "observations_grounded": 2,
+          "observations_separated": 2,
+          "outcome_correct": 2
+        },
+        "root_cause_accuracy": 0.5,
+        "average_duration_ms": 78748,
+        "average_tool_calls": 1,
+        "tool_calls": 2,
+        "successful_tool_calls": 2,
+        "tool_call_success_rate": 1.0
+      },
+      "database_error": {
+        "attempted_runs": 2,
+        "graded_runs": 2,
+        "run_errors": 0,
+        "checks_passed": {
+          "root_cause_correct": 2,
+          "citations_valid": 2,
+          "supporting_evidence_correct": 2,
+          "observations_grounded": 2,
+          "observations_separated": 2,
+          "outcome_correct": 2
+        },
+        "root_cause_accuracy": 1,
+        "average_duration_ms": 85045,
+        "average_tool_calls": 1,
+        "tool_calls": 2,
+        "successful_tool_calls": 2,
+        "tool_call_success_rate": 1.0
+      },
+      "delay": {
+        "attempted_runs": 2,
+        "graded_runs": 2,
+        "run_errors": 0,
+        "checks_passed": {
+          "root_cause_correct": 2,
+          "citations_valid": 2,
+          "supporting_evidence_correct": 2,
+          "observations_grounded": 2,
+          "observations_separated": 2,
+          "outcome_correct": 0
+        },
+        "root_cause_accuracy": 1,
+        "average_duration_ms": 97051,
+        "average_tool_calls": 1,
+        "tool_calls": 2,
+        "successful_tool_calls": 2,
+        "tool_call_success_rate": 1.0
+      }
+    }
+  },
+  "finished_at": "2026-11-09T04:21:28.267166+00:00",
+  "score_note": "Original model outputs and source snapshots, scored with the final shared rubric. The generic caller-failure rule accepts equivalent wording without awarding numeric status credit."
+}

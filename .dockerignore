@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!requirements.txt
+!services/
+!services/**
+services/investigator/
+**/__pycache__/
+**/.DS_Store

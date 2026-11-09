@@ -1,0 +1,83 @@
+# TracePilot
+
+TracePilot is a local backend for investigating service incidents. A FastAPI investigator uses Qwen through Ollama to query structured logs, Prometheus metrics, Jaeger traces, and service health with read-only tools. It returns observations with evidence citations, a suspected cause when supported, and a tool timeline. PostgreSQL stores completed and partial investigations.
+
+The demonstration stack simulates gaming infrastructure. The Game Server creates player sessions and forwards gameplay events to the Event Processor, which validates and stores them. Python 3.12 and FastAPI run the services, OpenTelemetry sends traces to Jaeger, and Docker Compose runs the services and their dependencies.
+
+## Run locally
+
+Install Python 3.12, Docker with Compose, and Ollama. Start Ollama and run these commands from the repository root.
+
+```sh
+docker compose up --build -d --wait
+ollama pull qwen3:4b
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+```
+
+The Game Server uses port 8000 and the Event Processor uses port 8001 on localhost. View traces in [Jaeger](http://127.0.0.1:16686) and metrics in [Prometheus](http://127.0.0.1:9090/query). Compose provides local defaults. To customize them, copy [`.env.example`](.env.example) to `.env` and export matching settings before running the investigator.
+
+In a separate terminal at the repository root, start the investigator.
+
+```sh
+source .venv/bin/activate
+python -m uvicorn services.investigator.main:app --host 127.0.0.1 --port "${INVESTIGATOR_PORT:-8002}"
+```
+
+The investigator uses the host Docker CLI to read recent application logs. It handles one investigation at a time, with defaults of eight tool calls and 180 seconds. Run `docker compose down` to stop the Compose services.
+
+## Reproduce and investigate an incident
+
+In the first terminal, create a session and submit an event while the processor error is enabled. The Game Server returns HTTP 502, and both services log the supplied request ID.
+
+```sh
+SESSION_ID=$(curl -fsS http://127.0.0.1:8000/sessions \
+  -H 'Content-Type: application/json' -d '{"player_id":"player-42"}' \
+  | python -c 'import json, sys; print(json.load(sys.stdin)["id"])')
+REQUEST_ID=$(python -c 'import uuid; print(uuid.uuid4())')
+
+curl -fsS -X PUT http://127.0.0.1:8001/dev/failure \
+  -H 'Content-Type: application/json' -d '{"mode":"processor_error"}'
+
+curl -si "http://127.0.0.1:8000/sessions/$SESSION_ID/events" \
+  -H 'Content-Type: application/json' -H "X-Request-ID: $REQUEST_ID" \
+  -d '{"event_type":"score_updated","payload":{"score":42}}'
+
+curl -fsS -X PUT http://127.0.0.1:8001/dev/failure \
+  -H 'Content-Type: application/json' -d '{"mode":"none"}'
+```
+
+Other modes are `database_error`, which yields HTTP 503 and PostgreSQL SQLSTATE `22012`, and `delay`, which yields HTTP 504 with the default settings while the write can still commit. The development endpoints are enabled by default in Compose. Set `ENABLE_FAILURE_SIMULATION=false` to disable them.
+
+Submit the request ID to the investigator. The API also accepts a trace ID or a description. Fetch a saved result with `GET /investigations/{investigation_id}` using the returned ID.
+
+```sh
+curl -fsS http://127.0.0.1:8002/investigations \
+  -H 'Content-Type: application/json' \
+  -d "{\"request_id\":\"$REQUEST_ID\",\"description\":\"Investigate this failed event submission.\"}"
+```
+
+## Tests and evaluation
+
+```sh
+python -m pytest -q
+TRACEPILOT_COMPOSE_SMOKE=1 python -m pytest -q tests/test_compose.py
+TRACEPILOT_LIVE_INVESTIGATOR=1 python -m pytest -q -s tests/test_investigator_live.py
+```
+
+The default suite uses mocked model responses. Run the Compose smoke test with the stack running. The live investigator tests also require the investigator and Ollama.
+
+```sh
+python -m evaluation.run --repetitions 2 --output evaluation/results.json
+```
+
+The evaluation checks Qwen's findings against HTTP responses, logs, traces, and database writes for three simulated failures. The runner saves results even when a rubric check fails.
+
+| Recorded run | Correct cause | Valid citations | Complete outcome | Mean time |
+| --- | ---: | ---: | ---: | ---: |
+| [Baseline](evaluation/baseline.json) | 6/6 | 6/6 | 3/6 | 29.3 s |
+| [Follow-up](evaluation/results.json) | 5/6 | 6/6 | 4/6 | 86.9 s |
+| [Timeout retest](evaluation/timeout-followup.json) | 2/2 | 2/2 | 2/2 | 81.2 s |
+
+The follow-up included a generic processor diagnosis and two timeout findings that omitted the successful write. Both targeted timeout retests reported the 504 and completed write after verified write evidence was added to the model input. These runs cover a small set of controlled incidents. Findings depend on the available evidence, and the investigator can return partial results or an undetermined cause.
