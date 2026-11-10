@@ -1,8 +1,22 @@
 # TracePilot
 
-TracePilot is a local incident investigator with a React and TypeScript dashboard. A FastAPI investigator uses Qwen through Ollama to query structured logs, Prometheus metrics, Jaeger traces, and service health with read-only tools. It returns observations with evidence citations, a suspected cause when supported, and a tool timeline. PostgreSQL stores completed and partial investigations.
+TracePilot investigates local service incidents using Qwen through Ollama. Its FastAPI backend queries structured logs, Prometheus metrics, Jaeger traces, and service health through read-only tools. The React and TypeScript dashboard shows findings with evidence citations and a tool timeline. PostgreSQL stores completed and partial investigations.
 
-The demonstration stack simulates gaming infrastructure. The Game Server creates player sessions and forwards gameplay events to the Event Processor, which validates and stores them. Python 3.12 and FastAPI run the services, OpenTelemetry sends traces to Jaeger, and Docker Compose runs the services and their dependencies.
+The Docker Compose demo simulates gaming infrastructure. A Game Server forwards gameplay events to an Event Processor, and OpenTelemetry sends traces to Jaeger.
+
+![TracePilot Overview with both services, Prometheus charts, and recent investigations](docs/images/overview.png)
+
+*Overview shows throughput, HTTP 5xx responses per second, and P95 latency during a controlled failure burst.*
+
+## Demo
+
+![TracePilot dashboard demo: submit a synthetic HTTP 502 investigation and inspect the findings](docs/images/tracepilot-demo.gif)
+
+*An investigation by trace ID shows the trace lookup and cited findings. The GIF shortens the 29.6-second run.*
+
+![Completed investigation with confidence, cited observations, an error log, and an expanded tool call](docs/images/investigation-detail.png)
+
+*A completed investigation cites an Event Processor error log. The [correlated Jaeger spans](docs/images/evidence-traces.png) show the downstream HTTP 500 and upstream HTTP 502.*
 
 ## Run locally
 
@@ -108,3 +122,7 @@ The evaluation checks Qwen's findings against HTTP responses, logs, traces, and 
 | [Timeout retest](evaluation/timeout-followup.json) | 2/2 | 2/2 | 2/2 | 81.2 s |
 
 The follow-up included a generic processor diagnosis and two timeout findings that omitted the successful write. Both targeted timeout retests reported the 504 and completed write after verified write evidence was added to the model input. These runs cover a small set of controlled incidents. Findings depend on the available evidence, and the investigator can return partial results or an undetermined cause.
+
+## License
+
+[MIT](LICENSE)
