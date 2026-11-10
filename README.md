@@ -25,7 +25,7 @@ source .venv/bin/activate
 python -m uvicorn services.investigator.main:app --host 127.0.0.1 --port "${INVESTIGATOR_PORT:-8002}"
 ```
 
-The investigator uses the host Docker CLI to read recent application logs. It handles one investigation at a time, with defaults of eight tool calls and 180 seconds. Run `docker compose down` to stop the Compose services.
+The investigator uses the host Docker CLI to read recent application logs. It handles one investigation at a time, with defaults of eight tool calls and 180 seconds. If Ollama's first tool-selection reply is incomplete or malformed, the investigator makes one retry within the same deadline and tool budget. Both attempts disable thinking. The initial request allows 1,024 output tokens, and the retry allows 256 and constrains the response to a tool name and arguments. Run `docker compose down` to stop the Compose services.
 
 ## Dashboard
 
@@ -40,6 +40,17 @@ npm run dev
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173) to check service telemetry, browse saved investigations, and inspect findings and their evidence. Vite proxies API requests to the local investigator. If you changed its port, set `TRACEPILOT_INVESTIGATOR_URL` before starting Vite. Set `VITE_PROMETHEUS_URL` or `VITE_JAEGER_URL` if you changed the monitoring UI ports.
 
 Run `npm test` for mocked frontend tests and `npm run build` for the type check and production build.
+
+## Generate gameplay traffic
+
+With Compose running, generate synthetic player sessions and match events against the Game Server on `127.0.0.1`. Refresh Overview after a few Prometheus scrapes (10 seconds each).
+
+```sh
+python3 scripts/generate_traffic.py --duration 60 --rate 5 --players 6
+python3 scripts/generate_traffic.py --duration 60 --rate 5 --players 6 --failure-burst 25
+```
+
+The rate limits Game Server requests per second, including session creation. The optional burst is measured in seconds and must be shorter than the run. It temporarily enables the Event Processor's development `processor_error` mode, which returns HTTP 502 at the Game Server. The generator attempts to restore the previous setting on exit. Run it separately from other failure simulations because the control applies to all events. Pass custom Compose ports with `--game-port` and `--processor-port`.
 
 ## Reproduce and investigate an incident
 
@@ -71,6 +82,8 @@ curl -fsS http://127.0.0.1:8002/investigations \
   -H 'Content-Type: application/json' \
   -d "{\"request_id\":\"$REQUEST_ID\",\"description\":\"Investigate this failed event submission.\"}"
 ```
+
+Investigations can still finish with partial results or an undetermined cause. In a live run, recovery retrieved metrics after a token-limited first reply, but a later model call used the remaining deadline before findings were available. In another run, the log tool rejected a model-generated time window longer than 60 minutes. A request ID or trace ID helps correlate evidence. Aggregate metrics alone cannot establish the cause of a specific failure.
 
 ## Tests and evaluation
 
